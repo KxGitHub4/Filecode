@@ -1,0 +1,199 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- Section 1: Uploaded Files List (Default View) -->
+<div class="card" style="margin-bottom: 2rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+    <div>
+      <h2>已上传文件</h2>
+      <p style="margin-bottom: 0;">点击可直接进入下载页面或使用管理密码进行文件管理。</p>
+    </div>
+    <span class="badge" style="background: #e2e8f0; color: #334155; font-size: 0.8rem; padding: 0.3rem 0.65rem;">
+      共 {{ files|length }} 个文件
+    </span>
+  </div>
+
+  {% if files %}
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      {% for f in files %}
+        <div style="border: 1px solid var(--border); border-radius: 8px; padding: 1rem; display: flex; justify-content: space-between; align-items: center; background: #fafafa; transition: border-color 0.15s ease;">
+          <div style="flex: 1; min-width: 0; padding-right: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <a href="/f/{{ f.id }}" style="font-weight: 600; color: var(--text); text-decoration: none; font-size: 0.975rem; word-break: break-all;">
+                {{ f.filename }}
+              </a>
+              {% if f.has_download_pin %}
+                <span class="badge badge-lock" style="flex-shrink: 0;">需密码</span>
+              {% else %}
+                <span class="badge badge-public" style="flex-shrink: 0;">公开</span>
+              {% endif %}
+            </div>
+            <p style="font-size: 0.825rem; color: var(--muted); margin: 0;">
+              大小: {{ f.file_size_fmt }} &middot; 上传: {{ f.upload_time_fmt }} &middot; 下载: {{ f.download_count }} 次
+            </p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-shrink: 0;">
+            <a href="/f/{{ f.id }}" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">下载</a>
+            <a href="/f/{{ f.id }}/manage" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">管理</a>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 2rem 1rem; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-size: 0.9rem;">
+      暂无已上传文件，可通过下方表单上传第一个文件。
+    </div>
+  {% endif %}
+</div>
+
+<!-- Section 2: Upload New File -->
+<div class="card">
+  <h2>上传新文件</h2>
+  <p style="margin-bottom: 1.5rem;">选择文件后将弹出密码配置（支持设置下载密码保护）。</p>
+
+  <form id="uploadForm">
+    <!-- Dropzone is always visible -->
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+      <p style="margin-top: 0.5rem; font-weight: 500; color: var(--text);">点击选择文件 或 拖放文件至此处</p>
+      <p style="font-size: 0.8rem; margin-top: 0.25rem;">支持任意格式单文件上传</p>
+      <input type="file" id="fileInput" name="file" style="display: none;" onchange="handleFileSelect(this)">
+      <div id="filePreview" class="file-preview"></div>
+    </div>
+
+    <!-- Password Settings & Submit: Hidden by default, shown ONLY after file is selected -->
+    <div id="uploadSettings" style="display: none; padding-top: 0.5rem; border-top: 1px solid var(--border); margin-top: 1rem;">
+      <div class="form-group">
+        <label for="adminPin">管理员密码（必填，6 位数字）</label>
+        <input type="password" id="adminPin" name="admin_pin" class="pin-input" maxlength="6" pattern="\d{6}" placeholder="******" required>
+        <div class="hint">必须输入正确的管理员密码方可上传文件（默认密码：123456）。</div>
+      </div>
+
+      <div class="form-group">
+        <label for="downloadPin">文件下载密码（选填，6 位数字）</label>
+        <input type="text" id="downloadPin" name="download_pin" class="pin-input" maxlength="6" pattern="\d{6}" placeholder="留空则公开">
+        <div class="hint">若留空，所有人可直接点击下载；若设置，则下载者必须输入此 6 位密码方可下载。</div>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+        <button type="submit" class="btn btn-primary" id="uploadBtn" style="flex: 1;">
+          <span>确认上传</span>
+        </button>
+        <button type="button" class="btn btn-outline" onclick="cancelUpload()" style="width: auto; padding: 0.75rem 1.25rem;">
+          取消
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Upload Result Card -->
+  <div id="resultCard" style="display: none; margin-top: 1.5rem;">
+    <div class="alert alert-success">文件已成功上传！请妥善保存以下信息：</div>
+    <div class="meta-row">
+      <span class="meta-label">下载链接</span>
+      <span class="meta-val"><a id="dlLink" href="" target="_blank" style="color: var(--accent); text-decoration: none;">查看下载页面</a></span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">管理链接</span>
+      <span class="meta-val"><a id="mgLink" href="" target="_blank" style="color: var(--accent); text-decoration: none;">进入管理页面</a></span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">下载权限</span>
+      <span class="meta-val" id="permStatus"></span>
+    </div>
+    <div style="margin-top: 1.5rem;">
+      <a href="/" class="btn btn-outline" style="width: 100%;">返回首页查看列表</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function handleFileSelect(input) {
+    const preview = document.getElementById('filePreview');
+    const settings = document.getElementById('uploadSettings');
+    if (input.files && input.files[0]) {
+      preview.style.display = 'block';
+      preview.textContent = '已选择: ' + input.files[0].name + ' (' + (input.files[0].size / 1024 / 1024).toFixed(2) + ' MB)';
+      settings.style.display = 'block';
+      // Smooth focus on admin pin input
+      setTimeout(() => {
+        document.getElementById('adminPin').focus();
+      }, 100);
+    } else {
+      settings.style.display = 'none';
+      preview.style.display = 'none';
+    }
+  }
+
+  function cancelUpload() {
+    document.getElementById('fileInput').value = '';
+    document.getElementById('filePreview').style.display = 'none';
+    document.getElementById('filePreview').textContent = '';
+    document.getElementById('adminPin').value = '';
+    document.getElementById('downloadPin').value = '';
+    document.getElementById('uploadSettings').style.display = 'none';
+  }
+
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => { dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      document.getElementById('fileInput').files = e.dataTransfer.files;
+      handleFileSelect(document.getElementById('fileInput'));
+    }
+  });
+
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    const adminPin = document.getElementById('adminPin').value.trim();
+    const downloadPin = document.getElementById('downloadPin').value.trim();
+
+    if (!fileInput.files.length) {
+      alert('请先选择要上传的文件');
+      return;
+    }
+    if (!/^\d{6}$/.test(adminPin)) {
+      alert('管理员密码必须为 6 位数字');
+      return;
+    }
+    if (downloadPin && !/^\d{6}$/.test(downloadPin)) {
+      alert('下载密码若填写，必须为 6 位数字');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '正在上传...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('admin_pin', adminPin);
+    formData.append('download_pin', downloadPin);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById('uploadForm').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('dlLink').href = data.download_page;
+        document.getElementById('dlLink').textContent = window.location.origin + data.download_page;
+        document.getElementById('mgLink').href = data.manage_page;
+        document.getElementById('mgLink').textContent = window.location.origin + data.manage_page;
+        document.getElementById('permStatus').textContent = data.has_download_pin ? '需凭 6 位下载密码下载' : '所有人公开可下载';
+      } else {
+        alert(data.error || '上传失败，请重试');
+        btn.disabled = false;
+        btn.innerHTML = '确认上传';
+      }
+    } catch (err) {
+      alert('网络异常：' + err);
+      btn.disabled = false;
+      btn.innerHTML = '确认上传';
+    }
+  });
+</script>
+{% endblock %}

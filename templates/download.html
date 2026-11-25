@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+    <div>
+      <h2 style="word-break: break-all;">{{ file.filename }}</h2>
+      <p>大小: {{ file_size_fmt }} &middot; 上传时间: {{ file.upload_time[:16] }}</p>
+    </div>
+    {% if file.has_download_pin %}
+      <span class="badge badge-lock">需密码</span>
+    {% else %}
+      <span class="badge badge-public">公开下载</span>
+    {% endif %}
+  </div>
+
+  <div class="meta-row">
+    <span class="meta-label">累计下载次数</span>
+    <span class="meta-val">{{ file.download_count }} 次</span>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-error" style="margin-top: 1rem;">{{ error }}</div>
+  {% endif %}
+
+  <div style="margin-top: 2rem;">
+    {% if file.has_download_pin %}
+      <form method="POST" action="/f/{{ file.id }}/download">
+        <div class="form-group" style="text-align: center;">
+          <label for="pin">此文件受密码保护，请输入 6 位下载密码：</label>
+          <input type="password" id="pin" name="pin" class="pin-input" maxlength="6" pattern="\d{6}" placeholder="******" autofocus required style="margin: 0.75rem auto 1.25rem auto; display: block;">
+        </div>
+        <button type="submit" class="btn btn-accent">验证并下载</button>
+      </form>
+    {% else %}
+      <form method="POST" action="/f/{{ file.id }}/download">
+        <button type="submit" class="btn btn-primary" style="font-size: 1rem; padding: 0.85rem;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          立即下载文件
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center;">
+    <a href="/f/{{ file.id }}/manage" style="font-size: 0.85rem; color: var(--muted); text-decoration: none;">管理此文件 &rarr;</a>
+  </div>
+</div>
+{% endblock %}

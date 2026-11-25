@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2>文件管理</h2>
+  <p style="margin-bottom: 1.5rem; word-break: break-all;">文件名: <strong>{{ file.filename }}</strong> ({{ file_size_fmt }})</p>
+
+  {% if not authed %}
+    {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+    <form method="POST" action="/f/{{ file.id }}/manage">
+      <div class="form-group" style="text-align: center;">
+        <label for="admin_pin">请输入上传时设定的 6 位管理密码：</label>
+        <input type="password" id="admin_pin" name="admin_pin" class="pin-input" maxlength="6" pattern="\d{6}" placeholder="******" autofocus required style="margin: 0.75rem auto 1.25rem auto; display: block;">
+      </div>
+      <button type="submit" class="btn btn-primary">解锁管理权限</button>
+    </form>
+  {% else %}
+    {% if success_msg %}
+      <div class="alert alert-success">{{ success_msg }}</div>
+    {% endif %}
+
+    <div class="meta-row">
+      <span class="meta-label">上传时间</span>
+      <span class="meta-val">{{ file.upload_time[:19] }}</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">累计下载次数</span>
+      <span class="meta-val">{{ file.download_count }} 次</span>
+    </div>
+    <div class="meta-row">
+      <span class="meta-label">当前下载状态</span>
+      <span class="meta-val">{{ "已启用 6 位密码保护" if file.has_download_pin else "所有人可直接下载（公开）" }}</span>
+    </div>
+
+    <!-- Modify Download Password -->
+    <div style="margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+      <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">修改下载密码</h3>
+      <p style="font-size: 0.85rem; margin-bottom: 0.85rem;">输入新的 6 位数字下载密码；若留空提交，则取消下载密码改为所有人可下载。</p>
+      <form method="POST" action="/f/{{ file.id }}/manage/update_pin">
+        <div class="form-group">
+          <input type="text" id="new_dl_pin" name="new_download_pin" class="pin-input" maxlength="6" pattern="\d{6}" placeholder="留空则公开" style="margin-bottom: 0.5rem;">
+        </div>
+        <button type="submit" class="btn btn-outline" style="width: 100%;">更新下载密码设置</button>
+      </form>
+    </div>
+
+    <!-- Danger Zone: Delete -->
+    <div style="margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+      <h3 style="font-size: 1rem; color: var(--danger); margin-bottom: 0.35rem;">危险操作</h3>
+      <p style="margin-bottom: 1rem;">删除文件后不可恢复，磁盘存储和下载记录将一并清除。</p>
+      <form method="POST" action="/f/{{ file.id }}/manage/delete" onsubmit="return confirm('确定要永久删除此文件吗？此操作无法撤销。');">
+        <button type="submit" class="btn btn-danger" style="width: 100%;">永久删除该文件</button>
+      </form>
+    </div>
+
+    <div style="margin-top: 1.5rem; text-align: center;">
+      <a href="/f/{{ file.id }}" class="btn btn-outline" style="width: 100%;">返回下载页面</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+[Unit]
+Description=FileHub Caddy Web Server
+After=network.target filehub-backend.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/caddy run --config /opt/filehub/Caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /opt/filehub/Caddyfile
+Restart=always
+RestartSec=3s
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

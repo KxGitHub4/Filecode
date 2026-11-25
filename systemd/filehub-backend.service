@@ -1,0 +1,15 @@
+[Unit]
+Description=FileHub Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=Amei
+WorkingDirectory=/opt/filehub
+ExecStart=/opt/filehub/venv/bin/python3 /opt/filehub/app.py
+Restart=always
+RestartSec=3s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
