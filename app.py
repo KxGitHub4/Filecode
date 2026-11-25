@@ -82,6 +82,14 @@ def index():
         })
     return render_template('index.html', files=file_list, title="FileHub - 极简文件传输")
 
+@app.route('/api/verify_admin', methods=['POST'])
+def api_verify_admin():
+    data = request.get_json(silent=True) or request.form
+    pin = (data.get('admin_pin') or '').strip()
+    if pin == GLOBAL_ADMIN_PIN:
+        return jsonify({'valid': True})
+    return jsonify({'valid': False, 'error': '管理员密码错误，请重新输入'}), 403
+
 @app.route('/api/upload', methods=['POST'])
 def api_upload():
     if 'file' not in request.files:

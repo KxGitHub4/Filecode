@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{ title or "FileHub - 简约文件托管" }}</title>
   <style>
     :root {
@@ -20,7 +20,7 @@
       --success: #10b981;
       --radius: 12px;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background: var(--bg);
@@ -31,13 +31,13 @@
       flex-direction: column;
     }
     .header {
-      padding: 1.25rem 1rem;
+      padding: 1.15rem 1rem;
       border-bottom: 1px solid var(--border);
       background: var(--card-bg);
     }
     .container {
-      max-width: 640px;
-      margin: 2.5rem auto;
+      max-width: 660px;
+      margin: 2rem auto;
       padding: 0 1rem;
       flex: 1;
       width: 100%;
@@ -46,21 +46,21 @@
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 2.25rem;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+      padding: 2rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
     }
-    h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.02em; }
-    h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
-    p { color: var(--muted); font-size: 0.925rem; }
-    .nav { display: flex; justify-content: space-between; align-items: center; max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.02em; }
+    h2 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.35rem; }
+    p { color: var(--muted); font-size: 0.9rem; }
+    .nav { display: flex; justify-content: space-between; align-items: center; max-width: 660px; margin: 0 auto; }
     .nav a { color: var(--text); text-decoration: none; font-weight: 600; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem; }
     
     .form-group { margin-bottom: 1.25rem; }
     label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; color: var(--text); }
-    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; line-height: 1.4; }
     input[type="text"], input[type="password"] {
       width: 100%;
-      padding: 0.65rem 0.875rem;
+      padding: 0.7rem 0.875rem;
       font-size: 0.95rem;
       border: 1px solid var(--border);
       border-radius: 8px;
@@ -74,7 +74,7 @@
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
     .pin-input {
-      letter-spacing: 0.35em;
+      letter-spacing: 0.3em;
       font-family: monospace;
       font-size: 1.25rem;
       text-align: center;
@@ -93,47 +93,24 @@
       cursor: pointer;
       text-decoration: none;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
-    .btn-primary { background: var(--primary); color: #fff; width: 100%; }
+    .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: var(--primary-hover); }
-    .btn-accent { background: var(--accent); color: #fff; width: 100%; }
+    .btn-accent { background: var(--accent); color: #fff; }
     .btn-accent:hover { background: var(--accent-hover); }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-danger:hover { background: var(--danger-hover); }
     .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { background: #f1f5f9; }
     
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      padding: 2.5rem 1.5rem;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      background: #fafafa;
-      margin-bottom: 1.5rem;
-    }
-    .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent);
-      background: #eff6ff;
-    }
-    .file-preview {
-      display: none;
-      margin-top: 1rem;
-      padding: 0.75rem 1rem;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-    
     .badge {
       display: inline-block;
-      padding: 0.2rem 0.55rem;
-      border-radius: 9999px;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
       font-size: 0.75rem;
       font-weight: 500;
+      line-height: 1.2;
     }
     .badge-lock { background: #fef3c7; color: #92400e; }
     .badge-public { background: #d1fae5; color: #065f46; }
@@ -158,11 +135,73 @@
     .meta-label { color: var(--muted); }
     .meta-val { font-weight: 500; }
 
+    /* Modal Component */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+      animation: fadeIn 0.15s ease-out;
+    }
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      animation: scaleUp 0.15s ease-out;
+      position: relative;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleUp { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* Mobile Enhancements */
+    @media (max-width: 640px) {
+      .container {
+        margin: 1rem auto;
+        padding: 0 0.75rem;
+      }
+      .card {
+        padding: 1.25rem 1rem;
+        border-radius: 10px;
+      }
+      .file-item {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+      }
+      .file-actions {
+        width: 100% !important;
+        display: flex !important;
+        gap: 0.5rem !important;
+      }
+      .file-actions a {
+        flex: 1 !important;
+        text-align: center !important;
+      }
+      .modal-card {
+        padding: 1.5rem 1.15rem !important;
+        margin: 0.5rem !important;
+        max-width: 100% !important;
+      }
+      .pin-input {
+        max-width: 100% !important;
+        font-size: 1.35rem !important;
+      }
+    }
+
     .footer {
       text-align: center;
       padding: 2rem 1rem;
       color: var(--muted);
-      font-size: 0.825rem;
+      font-size: 0.8rem;
     }
   </style>
 </head>
