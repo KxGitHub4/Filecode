@@ -78,8 +78,14 @@
 
     <!-- Step 2: File Selection & Download Password Setup -->
     <div id="stepUploadDetails" style="display: none;">
-      <h2>设置上传文件</h2>
-      <p style="margin-bottom: 1.25rem;">管理员验证已通过，请确认文件并设置下载权限：</p>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h2>设置上传文件</h2>
+        <span style="font-size: 0.75rem; color: var(--success); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>
+          管理员已记住
+        </span>
+      </div>
+      <p style="margin-bottom: 1.15rem; font-size: 0.85rem;">已拥有管理员权限，请确认文件并设置下载权限：</p>
 
       <form id="fileUploadForm" onsubmit="handleFinalUpload(event)">
         <!-- File Picker / Dropzone -->
@@ -97,8 +103,14 @@
 
         <div id="uploadError" class="alert alert-error" style="display: none;"></div>
 
-        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="button" class="btn btn-outline" onclick="backToStepAdmin()" style="flex: 1;">上一步</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; margin-bottom: 1rem;">
+          <button type="button" onclick="clearAdminAuth()" style="background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.8rem; text-decoration: underline; padding: 0;">
+            退出管理员认证
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline" onclick="closeUploadModal()" style="flex: 1;">取消</button>
           <button type="submit" class="btn btn-primary" id="btnUploadSubmit" style="flex: 1.5;">确认上传</button>
         </div>
       </form>
@@ -136,24 +148,66 @@
 </div>
 
 <script>
-  let validatedAdminPin = '';
   let pendingFile = null;
 
-  function openUploadModal() {
-    document.getElementById('uploadModal').style.display = 'flex';
-    document.getElementById('stepAdminAuth').style.display = 'block';
+  function getStoredAdminPin() {
+    return sessionStorage.getItem('filehub_admin_pin') || '';
+  }
+
+  function setStoredAdminPin(pin) {
+    if (pin) {
+      sessionStorage.setItem('filehub_admin_pin', pin);
+    } else {
+      sessionStorage.removeItem('filehub_admin_pin');
+    }
+  }
+
+  function clearAdminAuth() {
+    setStoredAdminPin('');
     document.getElementById('stepUploadDetails').style.display = 'none';
-    document.getElementById('stepUploadSuccess').style.display = 'none';
-    document.getElementById('adminAuthError').style.display = 'none';
-    document.getElementById('stagedFileNotice').style.display = 'none';
+    document.getElementById('stepAdminAuth').style.display = 'block';
     document.getElementById('modalAdminPin').value = '';
     setTimeout(() => { document.getElementById('modalAdminPin').focus(); }, 100);
+  }
+
+  function openUploadModal(file = null) {
+    document.getElementById('uploadModal').style.display = 'flex';
+    document.getElementById('stepUploadSuccess').style.display = 'none';
+    document.getElementById('adminAuthError').style.display = 'none';
+    document.getElementById('uploadError').style.display = 'none';
+
+    if (file) {
+      pendingFile = file;
+      document.getElementById('stagedFileName').textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+      document.getElementById('stagedFileNotice').style.display = 'block';
+      document.getElementById('modalFileText').textContent = '已选: ' + file.name + ' (' + (file.size / 1024 / 1024).toFixed(2) + ' MB)';
+    }
+
+    const savedPin = getStoredAdminPin();
+    if (savedPin) {
+      // Admin already verified in this session -> Skip password prompt!
+      document.getElementById('stepAdminAuth').style.display = 'none';
+      document.getElementById('stepUploadDetails').style.display = 'block';
+      if (!file && !pendingFile) {
+        document.getElementById('modalFileText').textContent = '点击选择文件';
+      }
+      setTimeout(() => {
+        if (pendingFile) {
+          document.getElementById('modalDownloadPin').focus();
+        }
+      }, 100);
+    } else {
+      // Not verified yet -> Show Step 1
+      document.getElementById('stepAdminAuth').style.display = 'block';
+      document.getElementById('stepUploadDetails').style.display = 'none';
+      document.getElementById('modalAdminPin').value = '';
+      setTimeout(() => { document.getElementById('modalAdminPin').focus(); }, 100);
+    }
   }
 
   function closeUploadModal() {
     document.getElementById('uploadModal').style.display = 'none';
     pendingFile = null;
-    validatedAdminPin = '';
   }
 
   function closeAndReload() {
@@ -166,11 +220,8 @@
   window.addEventListener('drop', (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files.length) {
-      pendingFile = e.dataTransfer.files[0];
-      openUploadModal();
-      document.getElementById('stagedFileNotice').style.display = 'block';
-      document.getElementById('stagedFileName').textContent = pendingFile.name + ' (' + (pendingFile.size / 1024 / 1024).toFixed(2) + ' MB)';
-      document.getElementById('modalFileText').textContent = '已选文件: ' + pendingFile.name;
+      const droppedFile = e.dataTransfer.files[0];
+      openUploadModal(droppedFile);
     }
   });
 
@@ -201,8 +252,8 @@
       btn.textContent = '下一步';
 
       if (res.ok && data.valid) {
-        validatedAdminPin = pin;
-        // Step 1 Success -> Step 2
+        setStoredAdminPin(pin);
+        // Step 1 Success -> Switch to Step 2
         document.getElementById('stepAdminAuth').style.display = 'none';
         document.getElementById('stepUploadDetails').style.display = 'block';
         if (pendingFile) {
@@ -229,17 +280,17 @@
     }
   }
 
-  function backToStepAdmin() {
-    document.getElementById('stepUploadDetails').style.display = 'none';
-    document.getElementById('stepAdminAuth').style.display = 'block';
-    setTimeout(() => { document.getElementById('modalAdminPin').focus(); }, 100);
-  }
-
   async function handleFinalUpload(e) {
     e.preventDefault();
     const btn = document.getElementById('btnUploadSubmit');
     const errBox = document.getElementById('uploadError');
     const downloadPin = document.getElementById('modalDownloadPin').value.trim();
+    const adminPin = getStoredAdminPin();
+
+    if (!adminPin) {
+      clearAdminAuth();
+      return;
+    }
 
     if (!pendingFile) {
       errBox.textContent = '请先点击选择要上传的文件';
@@ -258,7 +309,7 @@
 
     const formData = new FormData();
     formData.append('file', pendingFile);
-    formData.append('admin_pin', validatedAdminPin);
+    formData.append('admin_pin', adminPin);
     formData.append('download_pin', downloadPin);
 
     try {
@@ -275,6 +326,11 @@
         document.getElementById('resMgLink').href = data.manage_page;
         document.getElementById('resMgLink').textContent = window.location.origin + data.manage_page;
         document.getElementById('resPermStatus').textContent = data.has_download_pin ? '需凭 6 位密码下载' : '所有人公开可下载';
+      } else if (res.status === 403 || res.status === 401) {
+        clearAdminAuth();
+        const authErr = document.getElementById('adminAuthError');
+        authErr.textContent = '管理员授权已失效，请重新输入 6 位密码';
+        authErr.style.display = 'block';
       } else {
         errBox.textContent = data.error || '上传失败，请重试';
         errBox.style.display = 'block';
